@@ -1,0 +1,130 @@
+import tkinter as tk
+from tkinter import ttk
+import string
+import time
+
+# -------- Password Strength Check Function -------- #
+def check_strength(password):
+    reasons = []
+    strength = 0
+    
+    if len(password) < 6:
+        reasons.append("Too short (min 6 chars)")
+    elif len(password) >= 6:
+        strength += 1
+
+    if any(char.islower() for char in password):
+        strength += 1
+    else:
+        reasons.append("No lowercase letters")
+
+    if any(char.isupper() for char in password):
+        strength += 1
+    else:
+        reasons.append("No uppercase letters")
+
+    if any(char.isdigit() for char in password):
+        strength += 1
+    else:
+        reasons.append("No numbers")
+
+    if any(char in string.punctuation for char in password):
+        strength += 1
+    else:
+        reasons.append("No special characters")
+
+    if strength <= 2:
+        return "Weak", reasons, "red", strength
+    elif strength == 3 or strength == 4:
+        return "Moderate", reasons, "yellow", strength
+    else:
+        return "Strong", reasons, "green", strength
+
+# -------- GUI Update Functions -------- #
+def update_strength(event=None):
+    password = password_entry.get()
+    label_status.config(text="Checking...")
+    root.after(50, lambda: _update_strength(password))
+
+def _update_strength(password):
+    strength_text, reasons, color, score = check_strength(password)
+    
+    # Update label
+    label_status.config(text=strength_text, fg=color)
+
+    # Update reasons
+    if strength_text == "Strong":
+        reasons_label.config(text="✅ Looks good!")
+    else:
+        reasons_label.config(text="⚠ " + ", ".join(reasons))
+    
+    # Animate bar
+    for i in range(progress_bar["value"], score * 20 + 1):
+        progress_bar["value"] = i
+        progress_bar.update()
+        time.sleep(0.01)
+    for i in range(progress_bar["value"], score * 20 - 1, -1):
+        progress_bar["value"] = i
+        progress_bar.update()
+        time.sleep(0.01)
+
+def toggle_password():
+    if password_entry.cget('show') == '*':
+        password_entry.config(show='')
+        eye_button.config(text="🙈")
+    else:
+        password_entry.config(show='*')
+        eye_button.config(text="👁")
+
+def clear_all():
+    password_entry.delete(0, tk.END)
+    label_status.config(text="")
+    reasons_label.config(text="")
+    progress_bar["value"] = 0
+
+# -------- Main Window -------- #
+root = tk.Tk()
+root.title("Password Strength Checker")
+root.geometry("500x350")
+root.configure(bg="#0a0a0a")
+
+# -------- Style -------- #
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TProgressbar", thickness=20, troughcolor="#1e1e1e", background="green")
+
+# -------- UI Layout -------- #
+title_label = tk.Label(root, text="🔐 Password Strength Checker", font=("Consolas", 18, "bold"), fg="#39ff14", bg="#0a0a0a")
+title_label.pack(pady=10)
+
+frame_box = tk.Frame(root, bg="#1e1e1e", bd=2, relief="groove")
+frame_box.pack(padx=20, pady=10, fill="both", expand=True)
+
+password_label = tk.Label(frame_box, text="Enter Password:", font=("Consolas", 12), fg="white", bg="#1e1e1e")
+password_label.pack(pady=5)
+
+password_frame = tk.Frame(frame_box, bg="#1e1e1e")
+password_frame.pack()
+
+password_entry = tk.Entry(password_frame, font=("Consolas", 12), width=25, show='*', bg="black", fg="#39ff14", insertbackground="white")
+password_entry.pack(side="left", padx=(0,5))
+
+eye_button = tk.Button(password_frame, text="👁", command=toggle_password, bg="#1e1e1e", fg="white", bd=0, font=("Consolas", 12))
+eye_button.pack(side="left")
+
+label_status = tk.Label(frame_box, text="", font=("Consolas", 14, "bold"), bg="#1e1e1e")
+label_status.pack(pady=5)
+
+progress_bar = ttk.Progressbar(frame_box, orient="horizontal", length=300, mode="determinate", maximum=100)
+progress_bar.pack(pady=5)
+
+reasons_label = tk.Label(frame_box, text="", font=("Consolas", 10), fg="white", bg="#1e1e1e", wraplength=400)
+reasons_label.pack(pady=5)
+
+clear_button = tk.Button(frame_box, text="Clear", command=clear_all, font=("Consolas", 12), bg="red", fg="white")
+clear_button.pack(pady=10)
+
+# Bind events
+password_entry.bind("<KeyRelease>", update_strength)
+
+root.mainloop()
